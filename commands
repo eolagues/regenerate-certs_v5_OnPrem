@@ -1,0 +1,1 @@
+cat /etc/kubernetes/admin.conf | grep client-key-data | awk '{{print $2}}' | base64 -d
