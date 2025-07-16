@@ -1,0 +1,12 @@
+        passphrase_path = "/etc/maglev/.pki/passphrase.txt"
+        try:
+            with open(passphrase_path, "r") as f:
+                encrypted_passphrase = f.read().strip()
+
+            if not encrypted_passphrase:
+                logging.error("The passphrase file is empty.")
+                return
+            logging.info("Retrieved encrypted_passphrase")
+        except Exception as e:
+            logging.error(f"Failed to read passphrase from {passphrase_path}: {e}")
+            return
