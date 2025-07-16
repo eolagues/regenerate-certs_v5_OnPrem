@@ -438,31 +438,31 @@ def regenerate_apiserver_cert(cert_path):
     except Exception as e:
         logging.error(f"Unexpected error during regeneration of {cert_path}: {e}")
 
-def wait_for_crictl(timeout=300, interval=10):
+def wait_for_docker(timeout=300, interval=10):
     """
-    Espera hasta que 'crictl ps' funcione o se alcance el timeout (en segundos).
+    Espera hasta que 'docker ps' funcione o se alcance el timeout (en segundos).
     :param timeout: Máximo tiempo de espera en segundos
     :param interval: Intervalo de verificación en segundos
     """
-    logging.info(f" Waiting for 'crictl' to become ready (max {timeout // 60} min)...")
+    logging.info(f" Waiting for 'docker' to become ready (max {timeout // 60} min)...")
 
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
             result = subprocess.run(
-                ["sudo", "crictl", "ps"],
+                ["sudo", "docker", "ps"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 check=True
             )
-            logging.info("'crictl' is now available.")
+            logging.info("'docker' is now available.")
             return True
         except subprocess.CalledProcessError:
-            logging.warning("'crictl' not ready yet. Retrying in %s seconds...", interval)
+            logging.warning("'docker' not ready yet. Retrying in %s seconds...", interval)
             time.sleep(interval)
 
-    logging.error("Timeout reached. 'crictl' did not become available.")
+    logging.error("Timeout reached. 'docker' did not become available.")
     return False
 
 def is_tmux_session_active(session_name):
@@ -535,20 +535,20 @@ if __name__ == "__main__":
             logging.error(f" Failed to restart services: {e}")
             all_success = False
 
-        # Step 2: Wait for crictl to be ready
+        # Step 2: Wait for docker to be ready
         if all_success:
-            if not wait_for_crictl(timeout=300, interval=10):
+            if not wait_for_docker(timeout=300, interval=10):
                 logging.error(" 'docker' is not responding. Aborting container cleanup.")
                 all_success = False
 
         # Step 3: Execute container cleanup commands first
         commands = [
             ("sudo docker ps -a | grep -e decrypt-private-key -e kube-apiserver -e kube-controller-manager -e kube-scheduler", "List containers to remove"),
-            ("sudo docker rm $(sudo crictl ps -a | grep decrypt-private-key | awk '{print $1}')", "Remove decrypt-private-key containers"),
-            ("sudo docker stop $(sudo crictl ps -a | grep etcd | awk '{print $1}')", "Stop etcd containers"),
-            ("sudo docker rm $(sudo crictl ps -a | grep etcd | awk '{print $1}')", "Remove etcd containers"),
-            ("sudo docker stop $(sudo crictl ps -a | grep kube-apiserver | awk '{print $1}')", "Stop kube-apiserver containers"),
-            ("sudo docker rm $(sudo crictl ps -a | grep kube-apiserver | awk '{print $1}')", "Remove kube-apiserver containers")
+            ("sudo docker rm $(sudo docker ps -a | grep decrypt-private-key | awk '{print $1}')", "Remove decrypt-private-key containers"),
+            ("sudo docker stop $(sudo docker ps -a | grep etcd | awk '{print $1}')", "Stop etcd containers"),
+            ("sudo docker rm $(sudo docker ps -a | grep etcd | awk '{print $1}')", "Remove etcd containers"),
+            ("sudo docker stop $(sudo docker ps -a | grep kube-apiserver | awk '{print $1}')", "Stop kube-apiserver containers"),
+            ("sudo docker rm $(sudo docker ps -a | grep kube-apiserver | awk '{print $1}')", "Remove kube-apiserver containers")
         ]
 
         logging.info(" Executing final steps: container/service clean-up and restart")
