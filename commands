@@ -1,1 +1,57 @@
 cat /etc/kubernetes/admin.conf | grep client-key-data | awk '{{print $2}}' | base64 -d
+
+
+
+
+## ETCD SECRET
+
+# Get the secrets
+kubectl get secret -n maglev-system etcd-auth -ojson | jq -r '.data."ca.crt"'|base64 -d|openssl x509 -noout -subject -issuer -dates
+kubectl get secret -n maglev-system etcd-auth -ojson | jq -r '.data."etcd-client.pem"'|base64 -d|openssl x509 -noout -subject -issuer -dates
+
+kubectl get secret -n kube-system etcd-auth -ojson | jq -r '.data."ca.crt"'|base64 -d|openssl x509 -noout -subject -issuer -dates
+kubectl get secret -n kube-system etcd-auth -ojson | jq -r '.data."etcd-client.pem"'|base64 -d|openssl x509 -noout -subject -issuer -dates
+ 
+# Delete the etcd-auth
+
+kubectl delete secret -n kube-system etcd-auth
+kubectl delete secret -n maglev-system etcd-auth
+
+# Create the etcd-auth secret
+
+kubectl create secret generic etcd-auth --from-file=ca.crt="/etc/maglev/.pki/ca.crt" --from-file=etcd-client-key.pem="/etc/maglev/.pki/etcd-client-key.pem" --from-file=etcd-client.pem="/etc/maglev/.pki/etcd-client.pem" --namespace kube-system
+
+kubectl create secret generic etcd-auth --from-file=ca.crt="/etc/maglev/.pki/ca.crt" --from-file=etcd-client-key.pem="/etc/maglev/.pki/etcd-client-key.pem" --from-file=etcd-client.pem="/etc/maglev/.pki/etcd-client.pem" --namespace maglev-system 
+
+# OR
+for ns in kube-system maglev-system;do kubectl create secret generic etcd-auth --from-file=ca.crt="/etc/maglev/.pki/ca.crt" --from-file=etcd-client-key.pem="/etc/maglev/.pki/etcd-client-key.pem" --from-file=etcd-client.pem="/etc/maglev/.pki/etcd-client.pem" --namespace $ns;done 
+
+
+
+## CREDENTIAL MANAGER SECRET
+
+## Revisar los certs
+kubectl  -n maglev-system get secret credentialmanager-secret  -o json | jq -r '.data."ssh-publickey"'|base64 -d|openssl x509 -noout -subject -issuer -dates
+openssl x509 -noout -subject -issuer -dates -in /etc/maglev/.pki/credentialmanager.pem 
+
+# Backup key 
+cp -p /etc/maglev/.pki/credentialmanager-key.pem /data/tmp
+cd /tmp/
+
+# Decrypt the CM's private key
+## CASE 1: if you have passphrase.txt  ##
+sudo openssl rsa -in /etc/maglev/.pki/credentialmanager-key.pem -out /tmp/credentialmanager-key.pem  -passin pass:$(cat /etc/maglev/.pki/passphrase.txt)
+
+## CASE 2: if you have /encrypted_passphrase.txt instead  ##
+ 
+sudo openssl rsa -in /etc/maglev/.pki/credentialmanager-key.pem -out /tmp/credentialmanager-key.pem  -passin pass:$(sudo magluv-keymgr -d -f /etc/maglev/.pki/encrypted_passphrase.txt)
+ 
+
+## Eliminr los secrets
+kubectl  -n maglev-system delete secret credentialmanager-secret
+
+## Create the secrets
+sudo kubectl  --namespace maglev-system  create secret generic credentialmanager-secret --from-file=ssh-privatekey=/tmp/credentialmanager-key.pem --from-file=ssh-publickey=/etc/maglev/.pki/credentialmanager.pem
+
+
+
