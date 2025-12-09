@@ -438,11 +438,6 @@ def regenerate_apiserver_cert(cert_path):
         logging.error(f"Unexpected error during regeneration of {cert_path}: {e}")
 
 def wait_for_docker(timeout=300, interval=10):
-    """
-    Espera hasta que 'docker ps' funcione o se alcance el timeout (en segundos).
-    :param timeout: Máximo tiempo de espera en segundos
-    :param interval: Intervalo de verificación en segundos
-    """
     logging.info(f" Waiting for 'docker' to become ready (max {timeout // 60} min)...")
 
     start_time = time.time()
@@ -522,8 +517,8 @@ if __name__ == "__main__":
     if all_success:
         logging.info("ETCD and ApiServer certificates were successfully regenerated.")
         logging.info("Proceeding with post-regeneration tasks...")
-        logging.info(" Running command: sudo maglev-config certs info")
-        subprocess.run(["sudo", "maglev-config", "certs", "info"], check=True)
+        #logging.info(" Running command: sudo maglev-config certs info")
+        #subprocess.run(["sudo", "maglev-config", "certs", "info"], check=True)
 
         # Step 1: Restart services
         try:
